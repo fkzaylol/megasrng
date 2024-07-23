@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega's RNG</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to bottom, #00ff00, #ffffff);
+            margin: 0;
+            padding: 0;
+            color: #000;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        h1 {
+            color: #00ff00;
+            margin-bottom: 20px;
+        }
+        .roll-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            color: #ffffff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+        .roll-button:hover {
+            background-color: #0056b3;
+        }
+        .roll-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .common { color: #808080; }
+        .rare { color: #0000ff; }
+        .legendary { color: #ffff00; }
+        .mythic { color: #ff0000; }
+        .godly { color: #4b0082; }
+        .title-list {
+            margin-top: 20px;
+            font-size: 16px;
+            text-align: left;
+        }
+        .title-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .title-list li {
+            margin-bottom: 10px;
+        }
+        .cooldown-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .cooldown-box {
+            padding: 5px 10px;
+            font-size: 16px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .history {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .history ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .history li {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .duplicate {
+            color: red;
+            font-weight: bold;
+        }
+        .highlight-common { color: #808080; }
+        .highlight-rare { color: #0000ff; }
+        .highlight-legendary { color: #ffff00; }
+        .highlight-mythic { color: #ff0000; }
+        .highlight-godly { color: #4b0082; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mega's RNG</h1>
+        <p>Click the button to roll for a title with varying chances!</p>
+        <button class="roll-button" id="rollButton" onclick="rollTitle()">Roll</button>
+        <div class="cooldown-container">
+            <div class="cooldown-box" id="cooldownBox">Cooldown: 0s</div>
+        </div>
+        <div class="result" id="result"></div>
+        <div class="title-list">
+            <h2>Title Chances</h2>
+            <div id="commonList">
+                <h3 class="highlight-common">Common (75%)</h3>
+                <ul>
+                    <li>The Beginning (75%)</li>
+                    <li>Noob (63%)</li>
+                    <li>Baby (65%)</li>
+                </ul>
+            </div>
+            <div id="rareList">
+                <h3 class="highlight-rare">Rare (30%)</h3>
+                <ul>
+                    <li>Almost There (20%)</li>
+                    <li>Bro (22%)</li>
+                    <li>My Destiny (24%)</li>
+                </ul>
+            </div>
+            <div id="legendaryList">
+                <h3 class="highlight-legendary">Legendary (10%)</h3>
+                <ul>
+                    <li>My Heart (12%)</li>
+                    <li>A Beast (8%)</li>
+                    <li>Chad (7%)</li>
+                    <li>Nah I'd Win (6%)</li>
+                </ul>
+            </div>
+            <div id="mythicList">
+                <h3 class="highlight-mythic">Mythic (2%)</h3>
+                <ul>
+                    <li>Sorcerer (2%)</li>
+                    <li>Beast Of An Era (2%)</li>
+                    <li>Nah I'd Dodge (1%)</li>
+                </ul>
+            </div>
+            <div id="godlyList">
+                <h3 class="highlight-godly">Godly (0.5%)</h3>
+                <ul>
+                    <li>Heavenly Sorcerer (0.5%)</li>
+                    <li>Skibidi Toilet (0.5%)</li>
+                </ul>
+            </div>
+        </div>
+        <div class="history">
+            <h2>Rolled Titles</h2>
+            <ul id="historyList">
+                <!-- Rolled titles will appear here -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let canRoll = true;
+        let cooldown = 3; // 3 seconds cooldown
+        let cooldownTimer;
+
+        const rarityTitles = {
+            common: [
+                { title: "The Beginning", probability: 75 },
+                { title: "Noob", probability: 63 },
+                { title: "Baby", probability: 65 }
+            ],
+            rare: [
+                { title: "Almost There", probability: 20 },
+                { title: "Bro", probability: 22 },
+                { title: "My Destiny", probability: 24 }
+            ],
+            legendary: [
+                { title: "My Heart", probability: 12 },
+                { title: "A Beast", probability: 8 },
+                { title: "Chad", probability: 7 },
+                { title: "Nah I'd Win", probability: 6 }
+            ],
+            mythic: [
+                { title: "Sorcerer", probability: 2 },
+                { title: "Beast Of An Era", probability: 2 },
+                { title: "Nah I'd Dodge",  probability: 1 }
+            ],
+            godly: [
+                { title: "Heavenly Sorcerer", probability: 0.5 },
+                { title: "Skibidi Toilet", probability: 0.5 }
+            ]
+        };
+
+        const rollChances = {
+            common: 75,
+            rare: 64,
+            legendary: 26,
+            mythic: 12,
+            godly: 5
+        };
+
+        const history = new Set(); // To keep track of titles and avoid duplicates
+
+        function rollTitle() {
+            if (!canRoll) return;
+
+            canRoll = false;
+            startCooldown();
+
+            const resultDiv = document.getElementById('result');
+            const historyList = document.getElementById('historyList');
+
+            const randomNumber = Math.random() * 100;
+            let rarity = '';
+            let colorClass = '';
+
+            if (randomNumber < rollChances.godly) {
+                rarity = 'godly';
+                colorClass = 'godly';
+            } else if (randomNumber < rollChances.godly + rollChances.mythic) {
+                rarity = 'mythic';
+                colorClass = 'mythic';
+            } else if (randomNumber < rollChances.godly + rollChances.mythic + rollChances.legendary) {
+                rarity = 'legendary';
+                colorClass = 'legendary';
+            } else if (randomNumber < rollChances.godly + rollChances.mythic + rollChances.legendary + rollChances.rare) {
+                rarity = 'rare';
+                colorClass = 'rare';
+            } else {
+                rarity = 'common';
+                colorClass = 'common';
+            }
+
+            const titles = rarityTitles[rarity];
+            const titleIndex = Math.floor(Math.random() * titles.length);
+            const titleData = titles[titleIndex];
+            const title = titleData.title;
+            let titleText = `${title}`;
+
+            if (history.has(title)) {
+                titleText += " (Duplicate Title)";
+                resultDiv.className = `result ${colorClass}`;
+                resultDiv.textContent = titleText;
+                return;
+            } else {
+                history.add(title);
+            }
+
+            resultDiv.textContent = titleText;
+            resultDiv.className = `result ${colorClass}`;
+
+            // Add to history
+            const historyItem = document.createElement('li');
+            historyItem.textContent = `Rarity: ${rarity.charAt(0).toUpperCase() + rarity.slice(1)} - Title: ${title}`;
+            historyItem.className = colorClass;
+            historyList.appendChild(historyItem);
+
+            // Highlight rarity list
+            highlightRarity(rarity);
+        }
+
+        function startCooldown() {
+            const button = document.getElementById('rollButton');
+            const cooldownBox = document.getElementById('cooldownBox');
+
+            let remainingTime = cooldown;
+            button.disabled = true;
+            cooldownBox.textContent = `Cooldown: ${remainingTime}s`;
+
+            cooldownTimer = setInterval(() => {
+                remainingTime--;
+                cooldownBox.textContent = `Cooldown: ${remainingTime}s`;
+                if (remainingTime <= 0) {
+                    clearInterval(cooldownTimer);
+                    button.disabled = false;
+                    cooldownBox.textContent = 'Cooldown: 0s';
+                    canRoll = true;
+                }
+            }, 1000);
+        }
+
+        function highlightRarity(rarity) {
+            const rarityList = document.querySelectorAll('.title-list h3');
+            rarityList.forEach(el => {
+                el.classList.remove('highlight-common', 'highlight-rare', 'highlight-legendary', 'highlight-mythic', 'highlight-godly');
+            });
+            document.getElementById(`${rarity}List`).querySelector('h3').classList.add(`highlight-${rarity}`);
+        }
+    </script>
+</body>
+</html>
